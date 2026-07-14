@@ -1,7 +1,7 @@
-const { defineConfig } = require('@playwright/test');
-require('dotenv').config();
+import { defineConfig } from '@playwright/test';
+import 'dotenv/config';
 
-module.exports = defineConfig({
+export default defineConfig({
   testDir: './tests',
   timeout: 240000,
   expect: {
@@ -13,7 +13,6 @@ module.exports = defineConfig({
     locale: 'ru-RU',
     timezoneId: 'Europe/Moscow',
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-    headless: false,
     screenshot: 'only-on-failure',
   },
   projects: [
@@ -21,6 +20,7 @@ module.exports = defineConfig({
       name: 'chromium',
       use: {
         browserName: 'chromium',
+        headless: false,
       },
     },
   ],
