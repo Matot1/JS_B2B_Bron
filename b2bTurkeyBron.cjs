@@ -1,9 +1,9 @@
 const { chromium } = require('playwright');
 require('dotenv').config();
-const { sendMattermost } = require('./notify');
-const LoginPage = require('./object/loginPage');
-const SearchPage = require('./object/searchPage');
-const BookingPage = require('./object/bookingPage');
+const { sendMattermost } = require('./notify.cjs');
+const LoginPage = require('./object/loginPage.cjs');
+const SearchPage = require('./object/searchPage.cjs');
+const BookingPage = require('./object/bookingPage.cjs');
 
 (async () => {
   const browser = await chromium.launch({ headless: false });

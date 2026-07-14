@@ -8,5 +8,5 @@ npm install playwright
 npx playwright install chromium
 
 # Запуск теста
-node b2bTurkeyBron.js
+node b2bTurkeyBron.cjs
 ```

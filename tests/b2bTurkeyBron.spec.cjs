@@ -1,8 +1,8 @@
 const { test } = require('@playwright/test');
-const LoginPage = require('../object/loginPage');
-const SearchPage = require('../object/searchPage');
-const BookingPage = require('../object/bookingPage');
-const { sendMattermost } = require('../notify');
+const LoginPage = require('../object/loginPage.cjs');
+const SearchPage = require('../object/searchPage.cjs');
+const BookingPage = require('../object/bookingPage.cjs');
+const { sendMattermost } = require('../notify.cjs');
 
 test.describe('B2B Turkey Bron', () => {
   test('Бронирование тура в Турцию', async ({ page, context }) => {
