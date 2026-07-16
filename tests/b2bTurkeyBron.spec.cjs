@@ -19,7 +19,8 @@ test.describe('B2B Turkey Bron', () => {
       await search.selectCity('Москва');
       await search.selectCountry('Турция');
       await search.scrollToBottom();
-      await search.setDateFrom('05.10.2026');
+      await search.setDateFrom('23.10.2026');
+      await search.setDateTo('28.10.2026');
       await search.uncheckGroupResults();
       await search.checkNoPromo();
       await search.clickSearch();

@@ -37,6 +37,21 @@ class SearchPage {
     await this.page.waitForTimeout(300);
   }
 
+  async setDateTo(date) {
+    await this.page.evaluate((d) => {
+      const input = document.querySelector('input[name="CHECKIN_END"]');
+      if (input) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeInputValueSetter.call(input, d);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, date);
+    await this.page.waitForTimeout(500);
+    await this.page.keyboard.press('Escape');
+    await this.page.waitForTimeout(300);
+  }
+
   async uncheckGroupResults() {
     const checkbox = this.page.locator('label:has-text("группировать результаты")').locator('input[type="checkbox"]');
     if (await checkbox.isChecked()) {
