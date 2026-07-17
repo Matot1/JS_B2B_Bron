@@ -85,11 +85,11 @@ async function fillTourist(page, index) {
   await page.locator('.TOWNFROMINC_chosen .active-result:has-text("Москва")').click();
   await page.waitForTimeout(5000);
 
-  // Select country "Турция"
-  currentStep = 'Выбор страны Турция';
+  // Select country "Египет"
+  currentStep = 'Выбор страны Египет';
   await page.locator('.STATEINC_chosen .chosen-single').click();
   await page.waitForTimeout(300);
-  await page.locator('.STATEINC_chosen .active-result:has-text("Турция")').click();
+  await page.locator('.STATEINC_chosen .active-result:has-text("Египет")').click();
   await page.waitForTimeout(5000);
 
   // Select freight type "Чартер/блочная перевозка"
@@ -99,11 +99,11 @@ async function fillTourist(page, index) {
   await page.locator('.FREIGHTTYPE_chosen .active-result:has-text("Чартер/блочная перевозка")').click();
   await page.waitForTimeout(1000);
 
-  // Select tour "Turkey Antalya MOW"
-  currentStep = 'Выбор тура Turkey Antalya MOW';
+  // Select tour "Egypt Sharm-El-Sheikh MOW"
+  currentStep = 'Выбор тура Egypt Sharm-El-Sheikh MOW';
   await page.locator('.TOURINC_chosen .chosen-single').click();
   await page.waitForTimeout(300);
-  await page.locator('.TOURINC_chosen .active-result:has-text("Turkey Antalya MOW")').click();
+  await page.locator('.TOURINC_chosen .active-result:has-text("Egypt Sharm-El-Sheikh MOW")').click();
   await page.waitForTimeout(1000);
 
   // Scroll to the bottom of the page
@@ -117,7 +117,7 @@ async function fillTourist(page, index) {
     const input = document.querySelector('input[name="CHECKIN_BEG"]');
     if (input) {
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      nativeInputValueSetter.call(input, '24.10.2026');
+      nativeInputValueSetter.call(input, '26.11.2026');
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -127,21 +127,6 @@ async function fillTourist(page, index) {
   // Close any open datepicker
   await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
-
-  // Set "Вылет До" date - 26.12.2026
-  // currentStep = 'Установка даты возврата';
-  // await page.evaluate(() => {
-  //   const input = document.querySelector('input[name="CHECKIN_END"]');
-  //   if (input) {
-  //     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-  //     nativeInputValueSetter.call(input, '26.12.2026');
-  //     input.dispatchEvent(new Event('input', { bubbles: true }));
-  //     input.dispatchEvent(new Event('change', { bubbles: true }));
-  //   }
-  // });
-  // await page.waitForTimeout(500);
-  // await page.keyboard.press('Escape');
-  // await page.waitForTimeout(300);
 
   // Uncheck "группировать результаты" checkbox
   currentStep = 'Снятие чек-бокса группировать результаты';
@@ -179,6 +164,16 @@ async function fillTourist(page, index) {
 
   const targetPage = bookingPage || page;
   await targetPage.waitForTimeout(5000);
+
+  // Check that tour check-in date matches the requested departure date
+  currentStep = 'Проверка даты тура';
+  const actualCheckin = await targetPage.evaluate(() => {
+    const table = document.querySelector('table.tour_info.res');
+    return table ? table.getAttribute('data-checkin') : null;
+  });
+  if (actualCheckin !== '26.11.2026') {
+    throw new Error(`выбрана неподходящая дата тура. Ожидалось: 26.11.2026, получено: ${actualCheckin || 'не найдена'}`);
+  }
 
   // Open DevTools and switch to Network tab
   await targetPage.keyboard.press('F12');
@@ -248,10 +243,21 @@ async function fillTourist(page, index) {
   }
 
   // Send success notification to Mattermost
-  const dateFrom = '24.10.2026';
-  const dateTo = '26.12.2026';
+  // Get tour dates from the table on the booking page
+  const tourDates = await targetPage.evaluate(() => {
+    const table = document.querySelector('table.tour_info.res');
+    if (table) {
+      return {
+        checkin: table.getAttribute('data-checkin'),
+        checkout: table.getAttribute('data-checkout'),
+      };
+    }
+    return null;
+  });
+  const dateFrom = tourDates?.checkin || '26.11.2026';
+  const dateTo = tourDates?.checkout || '26.11.2026';
   await sendMattermost(`✅ Бронирование тура успешно
-Направление: Турция
+Направление: Египет
 Даты: ${dateFrom} – ${dateTo}
 Номер заявки: ${orderNumber}
 Ссылка: ${claimUrl}`);
