@@ -17,6 +17,13 @@ class SearchPage {
     await this.page.waitForTimeout(5000);
   }
 
+  async selectFreightType(type) {
+    await this.page.locator('.FREIGHTTYPE_chosen .chosen-single').click();
+    await this.page.waitForTimeout(300);
+    await this.page.locator(`.FREIGHTTYPE_chosen .active-result:has-text("${type}")`).click();
+    await this.page.waitForTimeout(1000);
+  }
+
   async scrollToBottom() {
     await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await this.page.waitForTimeout(500);

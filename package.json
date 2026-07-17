@@ -4,21 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:ui": "playwright test --ui"
+    "test": "node search_test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
+  "type": "commonjs",
   "dependencies": {
     "@faker-js/faker": "^10.5.0",
     "dotenv": "^17.4.2",
     "playwright": "^1.61.1",
     "transliteration": "^2.6.1"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.61.1"
   }
 }

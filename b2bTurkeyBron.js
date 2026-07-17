@@ -1,9 +1,56 @@
 const { chromium } = require('playwright');
+const { faker } = require('@faker-js/faker/locale/ru');
+const { transliterate } = require('transliteration');
 require('dotenv').config();
 const { sendMattermost } = require('./notify');
-const LoginPage = require('./object/loginPage');
-const SearchPage = require('./object/searchPage');
-const BookingPage = require('./object/bookingPage');
+
+async function fillTourist(page, index) {
+  const prefix = `#tourist${index}`;
+
+  // Select gender - Жен.
+  await page.locator(`${prefix} .chosen-single:has-text("----")`).click();
+  await page.waitForTimeout(300);
+  await page.locator(`${prefix} .active-result[data-option-array-index="1"]`).click();
+  await page.waitForTimeout(300);
+
+  // Generate random surname and fill
+  await page.locator(`input[name="frm[People][${index}][LASTNAME_LNAME]"]`).fill(faker.person.lastName().toUpperCase());
+  await page.waitForTimeout(200);
+
+  // Generate random name and fill
+  await page.locator(`input[name="frm[People][${index}][FIRSTNAME_LNAME]"]`).fill(faker.person.firstName().toUpperCase());
+  await page.waitForTimeout(200);
+
+  // Fill date of birth
+  await page.locator(`input[name="frm[People][${index}][BORN]"]`).fill('01.01.2000');
+  await page.waitForTimeout(200);
+
+  // Fill phone
+  await page.locator(`input[name="frm[People][${index}][PHONE]"]`).fill('79881929122');
+  await page.waitForTimeout(200);
+
+  // Fill email
+  await page.locator(`input[name="frm[People][${index}][EMAIL]"]`).fill('test33@mail.ru');
+  await page.waitForTimeout(200);
+
+  // Select document type - Заграничный паспорт
+  await page.locator(`${prefix} a.chosen-single:has-text("Паспорт")`).click();
+  await page.waitForTimeout(300);
+  await page.locator(`${prefix} .chosen-results .active-result:has-text("Заграничный паспорт")`).click();
+  await page.waitForTimeout(200);
+
+  // Fill document series
+  await page.locator(`input[name="frm[People][${index}][PSERIE]"]`).fill(faker.string.numeric(2));
+  await page.waitForTimeout(200);
+
+  // Fill document number
+  await page.locator(`input[name="frm[People][${index}][PNUMBER]"]`).fill(faker.string.numeric(7));
+  await page.waitForTimeout(200);
+
+  // Fill passport valid until date
+  await page.locator(`input[name="frm[People][${index}][PVALID]"]`).fill('01.01.2031');
+  await page.waitForTimeout(200);
+}
 
 (async () => {
   const browser = await chromium.launch({ headless: false });
@@ -16,45 +63,193 @@ const BookingPage = require('./object/bookingPage');
   let currentStep = '';
 
   try {
-    currentStep = 'Авторизация';
-    const login = new LoginPage(page);
-    await login.goto();
-    await login.login(process.env.LOGIN, process.env.PASSWORD);
 
-    currentStep = 'Поиск тура';
-    const search = new SearchPage(page);
-    await search.selectCity('Москва');
-    await search.selectCountry('Турция');
-    await search.scrollToBottom();
-    await search.setDateFrom('23.10.2026');
-    await search.setDateTo('28.10.2026');
-    await search.uncheckGroupResults();
-    await search.checkNoPromo();
-    await search.clickSearch();
+  await page.goto('https://b2b.fstravel.com/search_tour', { waitUntil: 'networkidle', timeout: 60000 });
 
-    currentStep = 'Выбор тура по цене';
-    const priceBtn = page.locator('span.price_old.bron.price_button').first();
-    const [bookingPage] = await Promise.all([
-      context.waitForEvent('page', { timeout: 15000 }).catch(() => null),
-      priceBtn.click({ timeout: 10000 }),
-    ]);
-    const targetPage = bookingPage || page;
-    await targetPage.waitForTimeout(5000);
+  // Wait for page to fully load
+  await page.waitForTimeout(3000);
 
-    currentStep = 'Заполнение данных туристов';
-    const booking = new BookingPage(targetPage);
-    await booking.fillTourist(1);
-    await booking.fillTourist(2);
-    await booking.checkIsCustomer(2);
-    await booking.fillBuyerInfo();
-    await booking.recalculate();
+  // Click "Вход" and login
+  currentStep = 'Авторизация на сайте';
+  await page.locator('a.login-action:has-text("Вход")').click();
+  await page.waitForTimeout(3000);
+  await page.getByLabel('Краткое имя').fill(process.env.LOGIN);
+  await page.getByLabel('Пароль').fill(process.env.PASSWORD);
+  await page.locator('button:has-text("Войти")').click();
+  await page.waitForTimeout(3000);
 
-    currentStep = 'Бронирование';
-    await booking.submitBooking();
+  // Select city "Москва"
+  currentStep = 'Выбор города Москва';
+  await page.locator('.TOWNFROMINC_chosen .chosen-single').click();
+  await page.waitForTimeout(300);
+  await page.locator('.TOWNFROMINC_chosen .active-result:has-text("Москва")').click();
+  await page.waitForTimeout(5000);
 
-    const { orderNumber, claimUrl } = await booking.getOrderInfo();
-    await sendMattermost(`✅ Тур забронирован. Номер заявки: ${orderNumber}\nСсылка: ${claimUrl}`);
-    await browser.close();
+  // Select country "Турция"
+  currentStep = 'Выбор страны Турция';
+  await page.locator('.STATEINC_chosen .chosen-single').click();
+  await page.waitForTimeout(300);
+  await page.locator('.STATEINC_chosen .active-result:has-text("Турция")').click();
+  await page.waitForTimeout(5000);
+
+  // Select freight type "Чартер/блочная перевозка"
+  currentStep = 'Выбор типа перевозки';
+  await page.locator('.FREIGHTTYPE_chosen .chosen-single').click();
+  await page.waitForTimeout(300);
+  await page.locator('.FREIGHTTYPE_chosen .active-result:has-text("Чартер/блочная перевозка")').click();
+  await page.waitForTimeout(1000);
+
+  // Scroll to the bottom of the page
+  currentStep = 'Прокрутка страницы';
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(500);
+
+  // Set "Вылет От" date - 23.12.2026
+  currentStep = 'Установка даты вылета';
+  await page.evaluate(() => {
+    const input = document.querySelector('input[name="CHECKIN_BEG"]');
+    if (input) {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      nativeInputValueSetter.call(input, '23.12.2026');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  await page.waitForTimeout(500);
+
+  // Close any open datepicker
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  // Set "Вылет До" date - 26.12.2026
+  // currentStep = 'Установка даты возврата';
+  // await page.evaluate(() => {
+  //   const input = document.querySelector('input[name="CHECKIN_END"]');
+  //   if (input) {
+  //     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+  //     nativeInputValueSetter.call(input, '26.12.2026');
+  //     input.dispatchEvent(new Event('input', { bubbles: true }));
+  //     input.dispatchEvent(new Event('change', { bubbles: true }));
+  //   }
+  // });
+  // await page.waitForTimeout(500);
+  // await page.keyboard.press('Escape');
+  // await page.waitForTimeout(300);
+
+  // Uncheck "группировать результаты" checkbox
+  currentStep = 'Снятие чек-бокса группировать результаты';
+  const groupCheckbox = page.locator('label:has-text("группировать результаты")').locator('input[type="checkbox"]');
+  if (await groupCheckbox.isChecked()) {
+    await groupCheckbox.uncheck();
+  }
+  await page.waitForTimeout(300);
+
+  // Check "Не отображать PROMO" checkbox
+  currentStep = 'Активация чек-бокса Не отображать PROMO';
+  const promoCheckbox = page.locator('label:has-text("Не отображать PROMO")').locator('input[type="checkbox"]');
+  if (!(await promoCheckbox.isChecked())) {
+    await promoCheckbox.check();
+  }
+  await page.waitForTimeout(300);
+
+  // Click "Поиск" button
+  currentStep = 'Нажатие кнопки Поиск';
+  await page.evaluate(() => {
+    const btn = document.querySelector('button.load.right');
+    if (btn) btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+
+  // Wait for search results to load
+  await page.waitForTimeout(7000);
+
+  // Click any price button and wait for new booking page
+  currentStep = 'Выбор тура по цене';
+  const priceBtn = page.locator('span.price_old.bron.price_button').first();
+  const [bookingPage] = await Promise.all([
+    context.waitForEvent('page', { timeout: 15000 }).catch(() => null),
+    priceBtn.click({ timeout: 10000 }),
+  ]);
+
+  const targetPage = bookingPage || page;
+  await targetPage.waitForTimeout(5000);
+
+  // Open DevTools and switch to Network tab
+  await targetPage.keyboard.press('F12');
+  await targetPage.waitForTimeout(1000);
+
+  // Fill tourist 1 data
+  currentStep = 'Заполнение данных туриста 1';
+  await fillTourist(targetPage, 1);
+
+  // Fill tourist 2 data
+  currentStep = 'Заполнение данных туриста 2';
+  await fillTourist(targetPage, 2);
+
+  // Check "является заказчиком тура" for tourist 2
+  currentStep = 'Отметка заказчика тура для туриста 2';
+  const customerCheckbox2 = targetPage.locator('#tourist2 label:has-text("является заказчиком тура")').locator('input[type="checkbox"]');
+  if (!(await customerCheckbox2.isChecked())) {
+    await customerCheckbox2.check();
+  }
+  await targetPage.waitForTimeout(200);
+
+  // Fill buyer's first name
+  currentStep = 'Заполнение имени покупателя';
+  await targetPage.locator('input[name="frm[phys_byer][-1][FIRSTNAME_NAME]"]').fill(transliterate(faker.person.firstName()).toUpperCase());
+  await targetPage.waitForTimeout(200);
+
+  // Fill buyer's last name
+  currentStep = 'Заполнение фамилии покупателя';
+  await targetPage.locator('input[name="frm[phys_byer][-1][LASTNAME_NAME]"]').fill(transliterate(faker.person.lastName()).toUpperCase());
+  await targetPage.waitForTimeout(200);
+
+  // Fill buyer's address with random Russian city
+  currentStep = 'Заполнение адреса покупателя';
+  const russianCity = faker.location.city();
+  await targetPage.locator('input[name="frm[phys_byer][-1][ADDRESS]"]').fill(russianCity);
+  await targetPage.waitForTimeout(200);
+
+  // Click "Пересчитать" button
+  currentStep = 'Пересчёт стоимости';
+  await targetPage.locator('button.calc:has-text("Пересчитать")').click();
+  await targetPage.waitForTimeout(7000);
+
+  // Click "бронировать" button
+  currentStep = 'Бронирование';
+  await targetPage.locator('button:has-text("бронировать")').click();
+  await targetPage.waitForTimeout(90000);
+
+  // Check for order number on the page
+  let orderNumber = 'не найден';
+  let claimUrl = '';
+  try {
+    const pageText = await targetPage.evaluate(() => document.body.innerText);
+    const numMatch = pageText.match(/Номер вашей заявки:\s*(\d+)/);
+    if (numMatch) orderNumber = numMatch[1];
+
+    // Get the claim URL from the modal link
+    claimUrl = await targetPage.evaluate(() => {
+      const links = document.querySelectorAll('a');
+      for (const a of links) {
+        if (a.textContent.includes('Посмотреть заявку')) return a.href;
+      }
+      return '';
+    });
+    console.log('Номер заявки:', orderNumber, 'Ссылка:', claimUrl);
+  } catch (e) {
+    console.log('Не удалось проверить результат, URL:', targetPage.url());
+  }
+
+  // Send success notification to Mattermost
+  const dateFrom = '23.12.2026';
+  const dateTo = '26.12.2026';
+  await sendMattermost(`✅ Бронирование тура успешно
+Направление: Турция
+Даты: ${dateFrom} – ${dateTo}
+Номер заявки: ${orderNumber}
+Ссылка: ${claimUrl}`);
+
+  await browser.close();
   } catch (err) {
     const pageUrl = typeof page !== 'undefined' ? await page.evaluate(() => location.href).catch(() => 'недоступен') : 'недоступен';
     await sendMattermost(`❌ Ошибка на шаге "${currentStep}": ${err.message}
