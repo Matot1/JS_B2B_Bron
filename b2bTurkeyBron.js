@@ -99,18 +99,25 @@ async function fillTourist(page, index) {
   await page.locator('.FREIGHTTYPE_chosen .active-result:has-text("Чартер/блочная перевозка")').click();
   await page.waitForTimeout(1000);
 
+  // Select tour "Turkey Antalya MOW"
+  currentStep = 'Выбор тура Turkey Antalya MOW';
+  await page.locator('.TOURINC_chosen .chosen-single').click();
+  await page.waitForTimeout(300);
+  await page.locator('.TOURINC_chosen .active-result:has-text("Turkey Antalya MOW")').click();
+  await page.waitForTimeout(1000);
+
   // Scroll to the bottom of the page
   currentStep = 'Прокрутка страницы';
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(500);
 
-  // Set "Вылет От" date - 23.12.2026
+  // Set "Вылет От" date - 24.10.2026
   currentStep = 'Установка даты вылета';
   await page.evaluate(() => {
     const input = document.querySelector('input[name="CHECKIN_BEG"]');
     if (input) {
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      nativeInputValueSetter.call(input, '23.12.2026');
+      nativeInputValueSetter.call(input, '24.10.2026');
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
@@ -241,7 +248,7 @@ async function fillTourist(page, index) {
   }
 
   // Send success notification to Mattermost
-  const dateFrom = '23.12.2026';
+  const dateFrom = '24.10.2026';
   const dateTo = '26.12.2026';
   await sendMattermost(`✅ Бронирование тура успешно
 Направление: Турция
