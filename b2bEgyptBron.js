@@ -101,9 +101,14 @@ async function fillTourist(page, index) {
 
   // Select tour "Egypt Sharm-El-Sheikh MOW"
   currentStep = 'Выбор тура Egypt Sharm-El-Sheikh MOW';
-  await page.locator('.TOURINC_chosen .chosen-single').click();
+  await page.locator('.TOURINC_chosen .chosen-single').scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
-  await page.locator('.TOURINC_chosen .active-result:has-text("Egypt Sharm-El-Sheikh MOW")').click();
+  await page.locator('.TOURINC_chosen .chosen-single').click();
+  await page.waitForTimeout(500);
+
+  const tourOption = page.locator('.TOURINC_chosen .active-result', { hasText: 'Sharm' });
+  await tourOption.first().waitFor({ state: 'attached', timeout: 5000 });
+  await tourOption.first().click({ force: true });
   await page.waitForTimeout(1000);
 
   // Scroll to the bottom of the page
@@ -255,7 +260,7 @@ async function fillTourist(page, index) {
     return null;
   });
   const dateFrom = tourDates?.checkin || '26.11.2026';
-  const dateTo = tourDates?.checkout || '26.11.2026';
+  const dateTo = tourDates?.checkout || '05.12.2026';
   await sendMattermost(`✅ Бронирование тура успешно
 Направление: Египет
 Даты: ${dateFrom} – ${dateTo}
